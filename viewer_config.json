@@ -1,0 +1,11 @@
+{
+  "cassy": {
+    "dll_path": "C:/Users/Massenspektrometer/Documents/Kerr Mikroskopie Software/LD.Api.dll"
+  },
+  "hardware": {
+    "measurement_window": {
+      "width_mm": 1.0,
+      "height_mm": 1.0
+    }
+  }
+}

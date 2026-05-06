@@ -1,0 +1,22 @@
+<RCC>
+  <qresource prefix="action_buttons">
+    <file>res/voltmeter.png</file>
+    <file>res/measure.png</file>
+    <file>res/lightning.png</file>
+    <file>res/background.png</file>
+    <file>res/background_mix.png</file>
+    <file>res/background_show.png</file>
+    <file>res/brightness.png</file>
+    <file>res/camera-lens.png</file>
+    <file>res/circular.png</file>
+    <file>res/cogwheel.png</file>
+    <file>res/combine.png</file>
+    <file>res/crop.png</file>
+    <file>res/gallery.png</file>
+    <file>res/gallery_edit.png</file>
+    <file>res/lightbulb.png</file>
+    <file>res/magnifying-glass.png</file>
+    <file>res/power-button.png</file>
+    <file>res/power-button_on.png</file>
+  </qresource>
+</RCC>
