@@ -133,7 +133,7 @@ class MainWindow(QMainWindow):
         self.offset_x = (lbl_w - pix_w) / 2
         self.offset_y = (lbl_h - pix_h) / 2
 
-        qimg = QImage(frame_to_show.data, img_w, img_h, img_w, QImage.Format_Grayscale8)
+        qimg = QImage(frame_to_show.data, img_w, img_h, img_w, QImage.Format_Grayscale8).copy()
         pixmap = QPixmap.fromImage(qimg).scaled(
             pix_w, pix_h, Qt.KeepAspectRatio, Qt.SmoothTransformation
         )

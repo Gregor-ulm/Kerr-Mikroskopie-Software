@@ -118,7 +118,7 @@ class VisionWorker(QtCore.QThread):
                         self.status_message.emit(f"⚠️ Schlechtes Matching ({quality:.2f})")
 
                     # Optional Logging
-                    print(f"Shift: dx={dx:.2f}, dy={dy:.2f}, Q={quality:.2f}")
+                    #print(f"Shift: dx={dx:.2f}, dy={dy:.2f}, Q={quality:.2f}")
             img = None
             if self.background_requested:   
                 img = gray.copy()
@@ -131,7 +131,11 @@ class VisionWorker(QtCore.QThread):
             
             # Background Capture
             if self._single_request:
-                self.process_image_capture(img if self.background_requested else gray, background=self.background_requested)
+                current_frame = img if self.background_requested else gray
+                if current_frame is None:
+                    print("Warnung: Frame ist None!")
+                    continue
+                self.process_image_capture(current_frame, background=self.background_requested)
             # Series Capture
             if self._series_request:
                 self._process_series_capture(gray)
@@ -139,7 +143,7 @@ class VisionWorker(QtCore.QThread):
             # Frame für GUI
             self._latest_frame = gray
             if not self._frame_pending:
-                self.frame_ready.emit(self._latest_frame)
+                self.frame_ready.emit(self._latest_frame.copy())
                 self._frame_pending = True
 
             # Alte Frames verwerfen (nur IDS)
@@ -289,6 +293,9 @@ class VisionWorker(QtCore.QThread):
         self._acc = None
 
     def accumulate_frame(self, frame):
+        if frame is None:
+            print("Warnung: accumulate_frame erhielt None")
+            return
         if self._acc is None:
             self._acc = frame.astype(np.float32)
         else:

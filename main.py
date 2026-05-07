@@ -85,15 +85,28 @@ class App:
         try:
             if not self.dll_path:
                 raise RuntimeError("Keine CASSY-DLL ausgewaehlt.")
-            self.cassy = CassyController(self.dll_path)
-            if not self.cassy.is_available:
-                QMessageBox.warning(
-                    None, 
-                    "CASSY nicht verfügbar",
-                    "Power-CASSY konnte nicht gefunden werden.\n"
-                    "Die Anwendung läuft ohne CASSY-Steuerung weiter."
-                )
-                self.window.ui.actioncassy.setEnabled(False)
+            
+            # ✅ WICHTIG: Zuerst EINEN gemeinsamen Scan durchführen
+            from cassy_controller import find_cassys
+            cassys = find_cassys(self.dll_path)
+            
+            # Dann die Controller mit den gefundenen Geräten initialisieren
+            if cassys['power']:
+                self.cassy = CassyController(self.dll_path, cassy=cassys['power'])
+                if not self.cassy.is_available:
+                    QMessageBox.warning(
+                        None, 
+                        "CASSY nicht verfügbar",
+                        "Power-CASSY konnte nicht initialisiert werden.\n"
+                        "Die Anwendung läuft ohne CASSY-Steuerung weiter."
+                    )
+                    self.window.ui.actioncassy.setEnabled(False)
+            else:
+                raise RuntimeError("Kein Power-CASSY gefunden.")
+            
+            if cassys['sensor']:
+                self.sensor_cassy = SensorCassyController(self.dll_path, cassy=cassys['sensor'])
+            
         except Exception as e:
             QMessageBox.warning(
                 None,
@@ -102,12 +115,6 @@ class App:
                 "Die Anwendung läuft ohne CASSY-Steuerung weiter."
             )
             self.cassy = None
-
-        try:
-            if self.dll_path:
-                self.sensor_cassy = SensorCassyController(self.dll_path)
-        except Exception as e:
-            print("Sensor-CASSY konnte nicht initialisiert werden:", e)
             self.sensor_cassy = None
         
         
@@ -544,9 +551,13 @@ class App:
     @QtCore.Slot(np.ndarray)
     def process_frame_slot(self, frame):
         """Wrapper: Frame anzeigen und Worker informieren, dass Frame verarbeitet wurde"""
-        self.process_frame(frame)
-        # Worker informieren, dass GUI Frame verarbeitet hat → nächstes Frame kann gesendet werden
-        self.vision.mark_frame_processed()
+        try:
+            self.process_frame(frame)
+        except Exception as e:
+            print("Fehler beim Verarbeiten des Frames:", e)
+        finally:
+            # Worker informieren, dass GUI Frame verarbeitet hat → nächstes Frame kann gesendet werden
+            self.vision.mark_frame_processed()
 
 
     def on_roi_set(self, roi_rect):
@@ -656,13 +667,11 @@ class App:
             
             # Button-Icon ändern
             if self.cassy.is_running:
-                self.cassy_button.setIcon(QtGui.QIcon(r'res\icons\selected\power-button.png'))
-                self.cassy_button.checked = True
+                self.actioncassy_red()
                 self._schedule_single_cycle_stop()
                 print("✅ CASSY gestartet")
             else:
-                self.cassy_button.setIcon(QtGui.QIcon(r'res\icons\selected\power-button_on.png'))
-                self.cassy_button.checked = False
+                self.actioncassy_green()
                 print("⏹️ CASSY gestoppt")
                 
         except Exception as e:
@@ -692,8 +701,7 @@ class App:
 
         try:
             self.cassy.stop()
-            self.cassy_button.setIcon(QtGui.QIcon(r'res\icons\selected\power-button_on.png'))
-            self.cassy_button.checked = False
+            self.actioncassy_green()
             self.cassy_info_label.setText("Einmal-Zyklus beendet")
         except Exception as e:
             QMessageBox.critical(self.window, "Fehler", f"CASSY-Stop fehlgeschlagen: {str(e)}")
@@ -707,6 +715,7 @@ class App:
             if self.cassy.is_running:
                 print(f"Toggled because of switch: {switch}")
                 self.cassy.toggle()
+                self.actioncassy_green()
         
         try:
             # Parameter aus SpinBoxes auslesen
@@ -742,8 +751,7 @@ class App:
                     amplitude=amplitude,
                     frequency=frequency,
                     offset=offset,
-                    ratio=ratio,
-                    zero_based=True
+                    ratio=ratio
                 )
                 
             elif self.window.ui.radioButton_user.isChecked():
@@ -914,7 +922,13 @@ class App:
             self.stabilizer_btn.checked = False
             self.window.ui.checkBox_fix_mean.setEnabled(False)
             
-        
+    def actioncassy_green(self):
+        self.cassy_button.setIcon(QtGui.QIcon(r'res\power-button_on.png'))
+        self.cassy_button.checked = False     
+
+    def actioncassy_red(self):
+        self.cassy_button.setIcon(QtGui.QIcon(r'res\power-button.png'))
+        self.cassy_button.checked = True
 
     def browse_folder(self):
         files, _ = QFileDialog.getOpenFileNames(None, "Bilder für Hintergrund nauswählen","","All Files (*)")
@@ -963,7 +977,7 @@ class App:
     def update_buttons(self):
         bg = self.vision.background
         diff = self.vision.diff_enabled
-        self.diff_button.setEnabled(diff)
+        self.diff_button.checked = diff
         self.cassy_button.checked = bool(self.cassy and self.cassy.is_running)
         if bg is None:
             self.diff_button.setEnabled(False)
