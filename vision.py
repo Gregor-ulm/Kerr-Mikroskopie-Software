@@ -26,8 +26,6 @@ class VisionWorker(QtCore.QThread):
         self._fps = 0
         self.digital_gain = 1.0
         self.diff_gain = 1.0
-        self.improve_contrast = False
-        self.clip_limit = 2.0
         
         # Helligkeitsstabilisierung
         self.brightness_stabilization = False
@@ -36,6 +34,9 @@ class VisionWorker(QtCore.QThread):
         self._max_gain = 5.0 # Sicherheitslimit
         self.mean_ref_offset = 0.0
         self.is_mean_fixed = False
+        self.improve_contrast = False
+        self.clip_limit = 2.0
+        self.neutralisation = False
 
         #Matching
         self.roi_size = 600              # Größe des Ausschnitts
@@ -119,11 +120,17 @@ class VisionWorker(QtCore.QThread):
 
                     # Optional Logging
                     #print(f"Shift: dx={dx:.2f}, dy={dy:.2f}, Q={quality:.2f}")
+            
             img = None
             if self.background_requested:   
                 img = gray.copy()
             gray = cv.convertScaleAbs(gray, alpha=self.digital_gain*self.diff_gain if self.diff_enabled else self.digital_gain)
-
+            if self.neutralisation:
+                #back = cv.GaussianBlur(frame_corrected, (0,0), sigmaX=20, sigmaY=20) Zu langsam
+                back = cv.blur(gray, (51,51))
+                back = cv.blur(back, (51,51))
+                back = cv.blur(back, (51,51))
+                gray = cv.divide(gray, back, scale=128)
             if self.improve_contrast:
                 clahe = cv.createCLAHE(clipLimit=self.clip_limit, tileGridSize=(8,8))
                 gray = clahe.apply(gray)
@@ -351,6 +358,7 @@ class VisionWorker(QtCore.QThread):
 
         # Anwenden
         frame_corrected = cv.convertScaleAbs(frame, alpha=gain)
+        
         self.stats_ready.emit(mean_current,
                       self._mean_ref,
                       gain)

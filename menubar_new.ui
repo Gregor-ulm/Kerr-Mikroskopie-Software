@@ -747,26 +747,6 @@
           <string>Differenzbild</string>
          </attribute>
          <layout class="QGridLayout" name="gridLayout_3" columnstretch="2,1">
-          <item row="1" column="0">
-           <widget class="QLabel" name="lbl_diff_brightness">
-            <property name="text">
-             <string>Helligkeit</string>
-            </property>
-           </widget>
-          </item>
-          <item row="7" column="1">
-           <spacer name="verticalSpacer_3">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
           <item row="1" column="1">
            <widget class="QSlider" name="slider_diff_brightness">
             <property name="maximum">
@@ -787,13 +767,30 @@
             </property>
            </widget>
           </item>
-          <item row="4" column="1">
-           <widget class="QSpinBox" name="spinBox_mean_ref_offset">
-            <property name="minimum">
-             <number>-50</number>
+          <item row="1" column="0">
+           <widget class="QLabel" name="lbl_diff_brightness">
+            <property name="text">
+             <string>Helligkeit</string>
             </property>
-            <property name="maximum">
-             <number>50</number>
+           </widget>
+          </item>
+          <item row="8" column="1">
+           <spacer name="verticalSpacer_3">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="lbl_mean_ref">
+            <property name="text">
+             <string>Offset</string>
             </property>
            </widget>
           </item>
@@ -810,20 +807,6 @@
             </property>
            </widget>
           </item>
-          <item row="3" column="0" colspan="2">
-           <widget class="Line" name="line_3">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="0">
-           <widget class="QLabel" name="lbl_mean_ref">
-            <property name="text">
-             <string>Offset</string>
-            </property>
-           </widget>
-          </item>
           <item row="6" column="0">
            <widget class="QLabel" name="lbl_stabilizer_info">
             <property name="text">
@@ -831,10 +814,20 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="0">
-           <widget class="QCheckBox" name="checkBox_kontrast">
-            <property name="text">
-             <string>Kontrastoptimierung</string>
+          <item row="3" column="0" colspan="2">
+           <widget class="Line" name="line_3">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QSpinBox" name="spinBox_mean_ref_offset">
+            <property name="minimum">
+             <number>-50</number>
+            </property>
+            <property name="maximum">
+             <number>50</number>
             </property>
            </widget>
           </item>
@@ -858,6 +851,20 @@
             </property>
             <property name="text">
              <string>Mittelwert fixieren</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QCheckBox" name="checkBox_kontrast">
+            <property name="text">
+             <string>Kontrastoptimierung</string>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="0">
+           <widget class="QCheckBox" name="checkBox_neutralisation">
+            <property name="text">
+             <string>Helligkeitsverlauf neutralisieren</string>
             </property>
            </widget>
           </item>

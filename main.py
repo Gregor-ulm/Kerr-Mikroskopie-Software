@@ -185,6 +185,7 @@ class App:
         self.window.ui.checkBox_kontrast.toggled.connect(lambda checked: setattr(self.vision, 'improve_contrast', checked))
         self.window.ui.slider_kontrast.valueChanged.connect(lambda value: setattr(self.vision, 'clip_limit', value))
         self.window.ui.checkBox_fix_mean.toggled.connect(self.vision.fix_mean)
+        self.window.ui.checkBox_neutralisation.toggled.connect(lambda checked: setattr(self.vision, 'neutralisation', checked))
 
 
         self.roi_reset_button.triggered.connect(self.reset_roi)
