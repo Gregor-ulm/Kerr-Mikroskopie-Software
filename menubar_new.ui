@@ -14,8 +14,7 @@
    <string>Kerr-Mikroskopie</string>
   </property>
   <property name="windowIcon">
-   <iconset>
-    <normaloff>res/icons/selected/combine.png</normaloff>res/icons/selected/combine.png</iconset>
+   <iconset theme="combine"/>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">

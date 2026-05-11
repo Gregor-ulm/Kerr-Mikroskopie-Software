@@ -1,7 +1,8 @@
 # main.py
 import sys
-from PySide6.QtWidgets import QApplication, QMessageBox, QWidget, QLabel, QVBoxLayout, QScrollArea, QFileDialog
-from PySide6.QtCore import QTimer
+import ctypes
+from PySide6.QtWidgets import QApplication, QMessageBox, QWidget, QLabel, QVBoxLayout, QScrollArea, QFileDialog, QStyleFactory
+from PySide6.QtCore import QTimer, QOperatingSystemVersion
 from PySide6.QtGui import QImage, QPixmap
 from PySide6 import QtCore, QtGui, QtWidgets
 import cv2 as cv
@@ -51,7 +52,30 @@ class App:
         self.active_capture_request = False
         self.statusbar_percentage = 0.0
 
+        # Deaktiviere Windows Darkmode für die Titelzeile
+        if QOperatingSystemVersion.current() >= QOperatingSystemVersion.Windows10:
+            DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+            ctypes.windll.dwmapi.DwmSetWindowAttribute(0, DWMWA_USE_IMMERSIVE_DARK_MODE, ctypes.byref(ctypes.c_int(0)), 4)
+
         self.app = QApplication(sys.argv)
+        self.app.setStyle(QStyleFactory.create("Fusion"))
+        self.app.setStyleSheet("""
+            QWidget {
+                background-color: white;
+                color: black;
+            }
+            QMenuBar {
+                background-color: #f0f0f0;
+                color: black;
+            }
+            QMenuBar::item {
+                background-color: transparent;
+                color: black;
+            }
+            QMenuBar::item:selected {
+                background-color: #e0e0e0;
+            }
+        """)
 
         self.window = MainWindow()
         self.config = AppConfig()
