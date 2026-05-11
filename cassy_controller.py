@@ -519,17 +519,17 @@ class SensorCassyController:
         if self.box_type == 'microvolt':
             self.box = Box524040(self.sensor_cassy, 0)
             self.cassyios.Add(self.box)
-            self.cassyios.Scan(ScanMode.ScanOnly)
+            # Selected VOR dem Scan setzen – entscheidend für Box524040!
             self.quantityU = self.box.QuantityU
             self.quantityU.Selected = True
-            self.quantityU.SingleShot = True
+            self.cassyios.Scan(ScanMode.ScanOnly)
         else:
             self.box = Box524013(self.sensor_cassy, self.input_index)
             self.cassyios.Add(self.box)
-            self.cassyios.Scan(ScanMode.ScanOnly)
             self.quantityU = self.box.QuantityU
-            self.quantityU.Selected  = True
+            self.quantityU.Selected = True
             self.quantityU.SingleShot = True
+            self.cassyios.Scan(ScanMode.ScanOnly)
 
         print(f"   Box: {self.box.SensorBoxName} | Gültig: {self.box.SensorBoxValid}")
         try:
@@ -542,7 +542,7 @@ class SensorCassyController:
         if not self.is_available:
             return None
         try:
-            self.cassyios.Scan(self.ScanMode.ScanOnly)
+            # Kein Scan hier – würde Messbereichskonfiguration zurücksetzen!
             self.cassyios.DoSingleMeasurement()
             return self._to_float(self.quantityU.Value)
         except Exception as e:

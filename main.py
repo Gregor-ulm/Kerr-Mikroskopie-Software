@@ -105,7 +105,7 @@ class App:
                 raise RuntimeError("Kein Power-CASSY gefunden.")
             
             if cassys['sensor']:
-                self.sensor_cassy = SensorCassyController(self.dll_path, cassy=cassys['sensor'])
+                self.sensor_cassy = SensorCassyController(self.dll_path, box_type='microvolt', cassy=cassys['sensor'])
             
         except Exception as e:
             QMessageBox.warning(
@@ -925,6 +925,7 @@ class App:
     def actioncassy_green(self):
         self.cassy_button.setIcon(QtGui.QIcon(r'res\power-button_on.png'))
         self.cassy_button.checked = False     
+        print("Grün gesetzt und unchecked")
 
     def actioncassy_red(self):
         self.cassy_button.setIcon(QtGui.QIcon(r'res\power-button.png'))

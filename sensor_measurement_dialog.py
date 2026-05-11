@@ -27,9 +27,21 @@ class SensorMeasurementDialog(QtWidgets.QDialog):
         self.ax = self.figure.add_subplot(111)
 
         self.integrate_checkbox = QtWidgets.QCheckBox("Spannung integrieren")
+        self.integrate_checkbox.toggled.connect(self._on_integrate_toggled)
+        
+        self.offset_label = QtWidgets.QLabel("Offset (V):")
+        self.offset_spin = QtWidgets.QDoubleSpinBox()
+        self.offset_spin.setRange(-1000, 1000)
+        self.offset_spin.setValue(0.0)
+        self.offset_spin.setSuffix(" V")
+        self.offset_spin.setDecimals(4)
+        self.offset_spin.setSingleStep(0.01)
+        self.offset_spin.valueChanged.connect(self._on_offset_changed)
+        self.offset_spin.setEnabled(False)
+        
         self.interval_spin = QtWidgets.QSpinBox()
         self.interval_spin.setRange(20, 5000)
-        self.interval_spin.setValue(100)
+        self.interval_spin.setValue(50)
         self.interval_spin.setSuffix(" ms")
 
         self.start_button = QtWidgets.QPushButton("Messung starten")
@@ -46,6 +58,9 @@ class SensorMeasurementDialog(QtWidgets.QDialog):
 
         controls = QtWidgets.QHBoxLayout()
         controls.addWidget(self.integrate_checkbox)
+        controls.addWidget(self.offset_label)
+        controls.addWidget(self.offset_spin)
+        controls.addSpacing(20)
         controls.addWidget(QtWidgets.QLabel("Intervall"))
         controls.addWidget(self.interval_spin)
         controls.addStretch(1)
@@ -139,9 +154,12 @@ class SensorMeasurementDialog(QtWidgets.QDialog):
         super().closeEvent(event)
 
     def _poll_voltage(self):
+        poll_start = time.monotonic()
         try:
             voltage = self.sensor_cassy.read_voltage()
+            current = self._read_current()
         except Exception as e:
+            print(f"❌ Messfehler: {e}")
             self.stop_measurement()
             self.status_label.setText(f"Messfehler: {e}")
             return
@@ -151,7 +169,7 @@ class SensorMeasurementDialog(QtWidgets.QDialog):
             return
 
         elapsed = time.monotonic() - self._start_time
-        current = self._read_current()
+        poll_duration = (time.monotonic() - poll_start) * 1000  # in ms
 
         self.times.append(elapsed)
         self.voltages.append(voltage)
@@ -159,12 +177,15 @@ class SensorMeasurementDialog(QtWidgets.QDialog):
         self.integrated_voltages.append(self._integral_value())
         self.export_button.setEnabled(True)
 
-        self.status_label.setText(f"U = {voltage:.5g} V")
+        print(f"✓ Messwert #{len(self.times)}: Poll={poll_duration:.1f}ms, U={voltage:.5g}V")
+        self.status_label.setText(f"U = {voltage:.5g} V, Poll={poll_duration:.0f}ms")
         self._redraw()
 
     def _write_measurement_file(self, filepath):
         with open(filepath, "w", encoding="utf-8") as file:
             file.write("# Sensor-CASSY Messwerte\n")
+            offset = self.offset_spin.value() if self.integrate_checkbox.isChecked() else 0.0
+            file.write(f"# Integrations-Offset: {offset:.6f} V\n")
             file.write("# Spalten: t_s\tU_V\tI_A\tint_U_Vs\n")
             file.write("t_s\tU_V\tI_A\tint_U_Vs\n")
             for t, u, i, integral in zip(
@@ -191,12 +212,25 @@ class SensorMeasurementDialog(QtWidgets.QDialog):
             return None
         return current
 
+    def _on_integrate_toggled(self, checked):
+        """Aktiviert/deaktiviert Offset-Spinner bei Integration"""
+        self.offset_spin.setEnabled(checked)
+        self._redraw()
+
+    def _on_offset_changed(self, value):
+        """Wenn Offset ändert, neu zeichnen"""
+        self._redraw()
+
     def _integral_value(self):
         if len(self.times) < 2:
             return 0.0
 
         dt = self.times[-1] - self.times[-2]
-        area = 0.5 * (self.voltages[-1] + self.voltages[-2]) * dt
+        offset = self.offset_spin.value() if self.integrate_checkbox.isChecked() else 0.0
+        # Korrigiere beide Spannungen um Offset vor Integration
+        u_corrected_last = self.voltages[-1] - offset
+        u_corrected_prev = self.voltages[-2] - offset
+        area = 0.5 * (u_corrected_last + u_corrected_prev) * dt
         return self.integrated_voltages[-1] + area
 
     def _redraw(self):
@@ -204,15 +238,31 @@ class SensorMeasurementDialog(QtWidgets.QDialog):
         self.ax.grid(True, alpha=0.3)
 
         if self.integrate_checkbox.isChecked():
-            usable = [(i, y) for i, y in zip(self.currents, self.integrated_voltages) if i is not None]
+            # Berechne korrigierte integrale mit aktuellem Offset
+            offset = self.offset_spin.value()
+            corrected_integrals = []
+            integral_sum = 0.0
+            
+            for idx in range(len(self.times)):
+                if idx == 0:
+                    corrected_integrals.append(0.0)
+                else:
+                    dt = self.times[idx] - self.times[idx-1]
+                    u_corr_prev = self.voltages[idx-1] - offset
+                    u_corr_curr = self.voltages[idx] - offset
+                    area = 0.5 * (u_corr_prev + u_corr_curr) * dt
+                    integral_sum += area
+                    corrected_integrals.append(integral_sum)
+            
+            usable = [(i, y) for i, y in zip(self.currents, corrected_integrals) if i is not None]
             if usable:
                 x_values, y_values = zip(*usable)
                 self.ax.plot(x_values, y_values, linewidth=1.8)
                 self.ax.set_xlabel("Strom I (A)")
                 self.ax.set_ylabel("Integral der Spannung (V s)")
-                self.ax.set_title("Hysteresekurve")
+                self.ax.set_title(f"Hysteresekurve (Offset: {offset:.4f}V)")
             else:
-                self.ax.plot(self.times, self.integrated_voltages, linewidth=1.8)
+                self.ax.plot(self.times, corrected_integrals, linewidth=1.8)
                 self.ax.set_xlabel("Zeit (s)")
                 self.ax.set_ylabel("Integral der Spannung (V s)")
                 self.ax.set_title("Integrierte Spannung")
