@@ -1,5 +1,6 @@
 <RCC>
   <qresource prefix="action_buttons">
+    <file>res/question.png</file>
     <file>res/voltmeter.png</file>
     <file>res/measure.png</file>
     <file>res/lightning.png</file>

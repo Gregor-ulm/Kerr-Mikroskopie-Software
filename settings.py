@@ -3,6 +3,10 @@ from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile
 from PySide6 import QtCore, QtWidgets
 
+"""
+Dialog für die Einstellungen der Aufnahmeparameter, Triggerbedingungen und Speicherpfad.
+Mögliche Erweiterung: Reset des Counters
+"""
 class SettingsDialog(QDialog):
     def __init__(self, 
                  count=30, 

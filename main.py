@@ -25,7 +25,11 @@ from sensor_measurement_dialog import SensorMeasurementDialog
 from app_config import AppConfig
 import resources_rc
 
+"""
+Hauptklasse der Anwendung. Initialisiert die Hardware, startet den VisionWorker und verbindet die Signale mit den GUI-Elementen.
+Verwaltet auch die Logik für die Bildaufnahme, CASSY-Steuerung und Anzeige von Informationen im GUI und verbindet alle Elemente miteinander.
 
+"""
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -38,8 +42,9 @@ class App:
         self.digital_gain = 1
         self.series_count = 30
         self.series_time = 30000 # milliseconds
-        # Informationen für Bildaufnahme
-        self.save_path = os.path.join(f"{os.getcwd()}\\Aufnahmen\\{datetime.today().strftime('%d%m')}")
+
+        # Informationen für Bildaufnahme (können später im Einstellungsdialog angepasst werden)
+        self.save_path = os.path.join(f"{os.getcwd()}\\Aufnahmen\\{datetime.today().strftime('%d%m')}") #Standardpfad für Aufnahmen
         self.name = "Bild"
         self.single_name = self.name
         self.single_image_counter = 0
@@ -52,7 +57,7 @@ class App:
         self.active_capture_request = False
         self.statusbar_percentage = 0.0
 
-        # Deaktiviere Windows Darkmode für die Titelzeile
+        # Deaktiviere Windows Darkmode für die Titelzeile, Design erzwingen (sonst ist es teilweise dunkel, teilweise hell), klappt leider nur teilweise
         if QOperatingSystemVersion.current() >= QOperatingSystemVersion.Windows10:
             DWMWA_USE_IMMERSIVE_DARK_MODE = 20
             ctypes.windll.dwmapi.DwmSetWindowAttribute(0, DWMWA_USE_IMMERSIVE_DARK_MODE, ctypes.byref(ctypes.c_int(0)), 4)
@@ -79,7 +84,7 @@ class App:
 
         self.window = MainWindow()
         self.config = AppConfig()
-        self.dll_path = self.resolve_cassy_dll_path()
+        self.dll_path = self.resolve_cassy_dll_path() #CASSY-DLL Pfad auflösen oder vom Nutzer abfragen
         self.measurement_window_size_mm = (
             self.config.get("hardware", "measurement_window", "width_mm", default=1.0),
             self.config.get("hardware", "measurement_window", "height_mm", default=1.0)
@@ -110,11 +115,11 @@ class App:
             if not self.dll_path:
                 raise RuntimeError("Keine CASSY-DLL ausgewaehlt.")
             
-            # ✅ WICHTIG: Zuerst EINEN gemeinsamen Scan durchführen
+            # Zuerst EINEN gemeinsamen Scan durchführen
             from cassy_controller import find_cassys
             cassys = find_cassys(self.dll_path)
             
-            # Dann die Controller mit den gefundenen Geräten initialisieren
+            # Controller mit den gefundenen Geräten initialisieren
             if cassys['power']:
                 self.cassy = CassyController(self.dll_path, cassy=cassys['power'])
                 if not self.cassy.is_available:
@@ -266,6 +271,7 @@ class App:
         print("Showing window...")
         self.window.showMaximized()
 
+    # CASSY-DLL Pfad auflösen oder vom Nutzer abfragen
     def resolve_cassy_dll_path(self):
         dll_path = self.config.get("cassy", "dll_path", default="")
         if dll_path and os.path.exists(dll_path):
@@ -291,16 +297,9 @@ class App:
         self.config.save()
         return selected_path
 
-
+    #Verarbeitet ein neues Frame vom VisionWorker und berechnet FPS
     @QtCore.Slot(np.ndarray)
     def process_frame(self, frame):
-        """ Gain anwenden (übernimmt ab jetzt der worker)
-        if self.diffbild:
-            frame = cv.convertScaleAbs(frame, alpha=self.diff_gain*self.digital_gain)
-        else:
-            frame = cv.convertScaleAbs(frame, alpha=self.digital_gain)
-        """
-
         self.window.current_frame = frame
         self.window.display_frame()
         
@@ -309,7 +308,8 @@ class App:
 
         self.update_histogram(frame)
 
-    def switch_diffbild(self): #Umschalten zwischen Original- und Diffbild
+    #Umschalten zwischen Original- und Diffbild
+    def switch_diffbild(self):
         if self.vision.background is None:
             QMessageBox.warning(self.window, "Warnung", "Kein Hintergrundbild vorhanden. Bitte zuerst Hintergrund erfassen.")
             return
@@ -341,7 +341,6 @@ class App:
         self.digital_gain_line_edit.setText(f"{self.digital_gain:.1f}")
         self.vision.set_digital_gain(self.digital_gain)
 
-    #Todo: Hintergrundbild abspeichern
     def show_background_image(self):
         if self.vision.background is None:
             QMessageBox.warning(self.window, "Warnung", "Kein Hintergrundbild vorhanden.")
@@ -378,7 +377,7 @@ class App:
         self.back_window.resize(min(w, 800), min(h, 600))
         self.back_window.show()
 
-    # Öffnet den Einstellungsdialog für die Bilderserie
+    # Öffnet den Einstellungsdialog für die Bilderserie, aktuelle Einstellungen werden übergeben und bei Bestätigung aktualisiert
     def open_settings_dialog(self):
         dlg = SettingsDialog(
             parent=self.window, 
@@ -411,6 +410,7 @@ class App:
         else:
             print("Dialog abgebrochen")
 
+    # Startet über den VisionWorker die Aufnahme einer Serie von Bildern mit den aktuellen Einstellungen
     def save_image_series(self):
         os.makedirs(self.save_path, exist_ok=True)
         print(f"Capture starten mit Pfad: {self.save_path}")
@@ -419,9 +419,13 @@ class App:
             self.series_time
         )
 
+    # Startet über den VisionWorker die Aufnahme eines einzelnen Bildes, ggf. Anfrage für ein Hintergrundbild
     def request_single_capture(self, background=False): 
         self.vision.request_single_capture(background=background)
 
+    # Speichert ein einzelnes Bild, wird vom VisionWorker aufgerufen, sobald das Bild bereit ist. 
+    # Wird für einzelne Bilder, aber auch für Serien verwendet, der Modus wird übergeben. 
+    # Ist CASSY aktiv, wird der aktuelle Stromwert in den Dateinamen aufgenommen, ansonsten wird einfach nur hochgezählt.
     def save_single_image(self, image, mode="single", counter=0):
         os.makedirs(self.save_path, exist_ok=True)
         number = self.single_image_counter if mode=="single" else counter
@@ -450,7 +454,7 @@ class App:
         elif mode == "serie" and counter >= self.series_count:
             self.active_capture_request = False
 
-
+    # Histogramm des aktuellen Frames berechnen und anzeigen
     def update_histogram(self, frame):
         total_h = self.histogram_label.height()
         total_w = self.histogram_label.width()
@@ -529,7 +533,10 @@ class App:
         self.roi_rect = None
         self.show_full_image = True
         self.vision.reset_roi()
+
+
     
+    # Kameraeinstellungen: Belichtung über logarithmischen Slider setzen, damit es im Bereich von 20ms bis 1000ms sinnvoll einstellbar ist.
     def on_exposure_slider_changed(self, slider_val):
         exposure_us = self.slider_to_exposure(slider_val, min_exp=20000, max_exp=1000000)
         self.vision.set_exposure(exposure_us)
@@ -539,7 +546,6 @@ class App:
 
         self.window.ui.lineEdit_exposure.setText(f"{exposure_us/1000:.2f}")  # ms
 
-    
     def on_exposure_text_changed(self):
         try:
             value_ms = float(self.window.ui.lineEdit_exposure.text())
@@ -555,7 +561,6 @@ class App:
         self.vision.set_exposure(value_ms * 1000.0)
         # FPS dynamisch anpassen
         self.vision.set_dynamic_fps(value_ms * 1000.0)
-
 
     def slider_to_exposure(self, slider_value, min_exp=20000, max_exp=1000000):
         """
@@ -575,7 +580,6 @@ class App:
         
     @QtCore.Slot(np.ndarray)
     def process_frame_slot(self, frame):
-        """Wrapper: Frame anzeigen und Worker informieren, dass Frame verarbeitet wurde"""
         try:
             self.process_frame(frame)
         except Exception as e:
@@ -598,8 +602,8 @@ class App:
         # Optional: GUI-Status setzen, falls noch nötig
         self.window.show_full_image = False
 
-    # In deiner App-Klasse - Füge diese Funktionen hinzu:
 
+    # Für Bildvermessung
     def toggle_measurement_mode(self, checked=False):
         if checked:
             self.window.start_measurement_mode()
@@ -640,6 +644,8 @@ class App:
         else:
             QMessageBox.warning(self.window, "Speichern fehlgeschlagen", f"Datei konnte nicht geschrieben werden:\n{filepath}")
 
+
+    # Sensor-CASSY Messdialog öffnen
     def open_sensor_measurement_dialog(self):
         if not self.sensor_cassy or not self.sensor_cassy.is_available:
             QMessageBox.warning(
@@ -666,8 +672,8 @@ class App:
         self.sensor_measurement_dialog.raise_()
         self.sensor_measurement_dialog.activateWindow()
 
+    # Schaltet CASSY ein/aus und aktualisiert Button-Icon
     def cassy_toggle(self):
-        """Schaltet CASSY ein/aus und aktualisiert Button-Icon"""
         if not self.cassy or not self.cassy.is_available:
             QMessageBox.warning(self.window, "CASSY nicht verfuegbar", "Power-CASSY ist nicht verfuegbar.")
             return
@@ -702,6 +708,8 @@ class App:
         except Exception as e:
             QMessageBox.critical(self.window, "Fehler", f"CASSY-Fehler: {str(e)}")
 
+
+    # Automatischer Stopp des Cassy nach einem Zyklus, nur relevant für Einmal-Zyklus mit benutzerdefinierter Formel
     def _schedule_single_cycle_stop(self):
         if not self.window.ui.radioButton_user.isChecked():
             return
@@ -731,8 +739,8 @@ class App:
         except Exception as e:
             QMessageBox.critical(self.window, "Fehler", f"CASSY-Stop fehlgeschlagen: {str(e)}")
 
+    #Aktualisiert CASSY-Parameter basierend auf GUI-Werten
     def update_cassy_params(self, value=0.0, switch=False, setzen=False):
-        """Aktualisiert CASSY-Parameter basierend auf GUI-Werten"""
         if not self.cassy or not self.cassy.is_available:
             return
 
@@ -792,7 +800,7 @@ class App:
                 
                 formula = self.window.ui.lineEdit_user.text()
                 
-                # WICHTIG: configure_waveform mit ALLEN Parametern aufrufen!
+                # configure_waveform mit ALLEN Parametern aufrufen!
                 self.cassy.configure_waveform(
                     waveform_type=self.cassy.WAVEFORM_USER,
                     amplitude=amplitude,
@@ -824,8 +832,8 @@ class App:
             QMessageBox.warning(self.window, "Warnung", 
                               f"Parameter-Update fehlgeschlagen: {str(e)}")
 
+    #Aktualisiert CASSY-Status und Anzeige
     def update_cassy_status(self):
-        """Aktualisiert CASSY-Status und Anzeige"""
         if not self.cassy or not self.cassy.is_available:
             return
         
@@ -868,13 +876,12 @@ class App:
             self.cassy_status_label.setText(f"⚠️ Fehler: {str(e)}")
             self.cassy_status_label.setStyleSheet("color: red;")
 
+
+    # Überprüft, ob die aktuellen CASSY-Stromwerte die Trigger-Bedingungen erfüllen und startet ggf. automatisch die Aufnahme
     def _check_trigger(self, current):
-        """Trigger-Logik"""
-        
         if self.trigger_mode == 'rising':
-            # Rising Edge: Trigger wenn current >= trigger_value
+            # Rising: Trigger wenn current >= trigger_value
             if current >= self.trigger_value:
-                
                 if self.step_trigger:
                     # Step-Trigger: Mehrere Aufnahmen in Schritten
                     if current >= self.next_trigger_value:
@@ -907,11 +914,10 @@ class App:
                     )
         
         elif self.trigger_mode == 'falling':
-            # Falling Edge: Trigger wenn current <= trigger_value
+            # Falling: Trigger wenn current <= trigger_value
             if current <= self.trigger_value:
                 
                 if self.step_trigger:
-                    # TODO: Implementierung für falling step trigger
                     if current <= self.next_trigger_value:
                         print(f"✅ TRIGGER bei {current:.3f}A (fallend)")
                         
@@ -936,6 +942,7 @@ class App:
                         self.name
                     )
 
+    # Umschalten des Helligkeitsstabilisators
     def toggle_stabilizer(self):
         self.vision.brightness_stabilization = not self.vision.brightness_stabilization
         if self.vision.brightness_stabilization:
@@ -947,6 +954,7 @@ class App:
             self.stabilizer_btn.checked = False
             self.window.ui.checkBox_fix_mean.setEnabled(False)
             
+    # Manuelles Setzen der CASSY-Button-Icons, abhängig vom Status. Kann schwierig beim Umschalten von Cassy-Modus sein
     def actioncassy_green(self):
         self.cassy_button.setIcon(QtGui.QIcon(r'res\power-button_on.png'))
         self.cassy_button.checked = False     
@@ -956,6 +964,7 @@ class App:
         self.cassy_button.setIcon(QtGui.QIcon(r'res\power-button.png'))
         self.cassy_button.checked = True
 
+    # Methoden für HIntergrundbild
     def browse_folder(self):
         files, _ = QFileDialog.getOpenFileNames(None, "Bilder für Hintergrund nauswählen","","All Files (*)")
         if files:
@@ -977,6 +986,8 @@ class App:
         except Exception as e:
             QMessageBox.critical(self.window, "Fehler", f"Hintergrunderstellung fehlgeschlagen: {str(e)}")
 
+
+    # Statusbar Funktionen
     @QtCore.Slot(float, float, float)
     def update_stats_display(self, mean, mean_ref, gain):
         self.window.ui.lbl_brightness_stabilizer.setText(f"Gain: {gain:.1f}")

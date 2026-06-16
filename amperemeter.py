@@ -3,6 +3,8 @@ from PySide6.QtGui import QPainter, QPen, QColor, QFont
 from PySide6.QtCore import Qt, QRectF
 
 
+#Widget, das die Stromstärke als vertikalen Balken anzeigt.
+
 class AmpereMeter(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)

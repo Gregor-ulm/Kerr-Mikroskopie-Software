@@ -6,6 +6,10 @@ SensorCassyController - Unterstützt:
   - Box524013: Standard-Spannungseingang (±10V)
   - Box524040: µV-Box für Induktionsspannungen
 
+Für die Kommunikation wir die LD.Api.dll von Leybold verwendet. 
+Bei einer notwendigen Anpassung der Funktionalität kann die .dll mithilfe eines LLM auf die benötigten Funktionen analysiert 
+und die entsprechenden Methoden in den Controllern implementiert werden (Claude Code ist hier empfehlenswert).
+
 Verwendung:
     cassys = find_cassys(DLL_PATH)
     power  = CassyController(DLL_PATH, cassy=cassys['power'])

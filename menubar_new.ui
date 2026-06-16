@@ -14,7 +14,8 @@
    <string>Kerr-Mikroskopie</string>
   </property>
   <property name="windowIcon">
-   <iconset theme="combine"/>
+   <iconset theme="combine">
+    <normaloff>.</normaloff>.</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">
@@ -1220,7 +1221,7 @@
      <x>0</x>
      <y>0</y>
      <width>1145</width>
-     <height>26</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menutest">
@@ -1228,6 +1229,7 @@
      <string>Menü</string>
     </property>
     <addaction name="actionParameter"/>
+    <addaction name="actionHilfe"/>
    </widget>
    <addaction name="menutest"/>
   </widget>
@@ -1895,8 +1897,21 @@
    </property>
   </action>
   <action name="actionParameter">
+   <property name="icon">
+    <iconset resource="resource.qrc">
+     <normaloff>:/action_buttons/res/cogwheel.png</normaloff>:/action_buttons/res/cogwheel.png</iconset>
+   </property>
    <property name="text">
     <string>Parameter</string>
+   </property>
+  </action>
+  <action name="actionHilfe">
+   <property name="icon">
+    <iconset resource="resource.qrc">
+     <normaloff>:/action_buttons/res/question.png</normaloff>:/action_buttons/res/question.png</iconset>
+   </property>
+   <property name="text">
+    <string>Hilfe</string>
    </property>
   </action>
  </widget>

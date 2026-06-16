@@ -5,7 +5,13 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from PySide6 import QtCore, QtWidgets
 
-
+"""
+Zeigt einen Dialog für die Sensor-CASSY Spannungsmessung mit Echtzeit-Plot, optionaler Integration und Exportfunktionalität.
+- Sensor-CASSY wird kontinuierlich abgefragt, um Spannung und optional Strom zu messen.
+- Messwerte werden in Listen gespeichert und in einem Matplotlib-Plot dargestellt.
+- Integration der Spannung über die Zeit ist optional, mit einstellbarem Offset. Darüber kann die Hysteresekurve (Integral vs. Strom) dargestellt werden.
+- Messung kann gestartet, gestoppt und zurückgesetzt werden. Messwerte können als Textdatei exportiert werden.
+"""
 class SensorMeasurementDialog(QtWidgets.QDialog):
     def __init__(self, sensor_cassy, power_cassy=None, parent=None):
         super().__init__(parent)

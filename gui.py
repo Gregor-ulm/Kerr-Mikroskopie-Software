@@ -8,8 +8,15 @@ from PySide6 import QtCore, QtGui
 import cv2 as cv
 import numpy as np
 
-MIN_ROI_WIDTH = 256   # IDS-Kamera Minimum
+MIN_ROI_WIDTH = 256   # IDS-Kamera Minimum ROI-Breite (Limitation durch Hardware)
 MIN_ROI_HEIGHT = 1
+
+"""
+GUI-Klasse für die IDS-Kamera Anwendung. Das Design basiert auf einem QMainWindow, dessen UI aus einer .ui-Datei geladen wird.
+Diese wurde mit Qt Designer erstellt und beinhaltet auch eine resources.qrc für Icons. Damit diese verwendet werden kann,
+muss sie mit pyrcc6 in eine Python-Datei umgewandelt und importiert werden (z.B. als resources.py). 
+"""
+
 
 class MainWindow(QMainWindow):
     roi_set = Signal(tuple)  # (x, y, w, h)
@@ -21,12 +28,9 @@ class MainWindow(QMainWindow):
         
         # UI laden
         loader = QUiLoader()
-        file = QFile("menubar_new.ui")  # ← GEÄNDERT: neue UI-Datei
+        file = QFile("menubar_new.ui")  #Hier die .ui-Datei angeben
         file.open(QFile.ReadOnly)
         
-        # WICHTIG: Bei QMainWindow wird das UI direkt als self geladen
-        # NICHT: self.ui = loader.load(file, self)
-        # SONDERN: komplettes Window ersetzen
         loaded_ui = loader.load(file, None)  # ← parent=None!
         file.close()
         
@@ -61,7 +65,7 @@ class MainWindow(QMainWindow):
         self.measurement_window_width_mm = 1.0
         self.measurement_window_height_mm = 1.0
 
-        # Widgets referenzieren (Namen sollten gleich geblieben sein)
+        #Widgets
         self.img_label = self.ui.lbl_image
         self.hbox_layout = self.ui.horizontalLayout
         self.img_label.setMouseTracking(True)
@@ -74,10 +78,7 @@ class MainWindow(QMainWindow):
         self.btn_roi.triggered.connect(lambda: setattr(self, 'roi', True))
         self.btn_roi_reset.triggered.connect(self.reset_roi)
         
-        # ENTFERNEN: self.setCentralWidget(self.ui)
-        # Das wurde schon oben gemacht!
-
-    
+    # Event Filter für Mausinteraktionen auf dem Bildlabel zum Setzen von ROI und Messungen
     def eventFilter(self, obj, event):
         if obj == self.img_label:
             if event.type() == QEvent.MouseButtonPress:
@@ -164,6 +165,9 @@ class MainWindow(QMainWindow):
 
         self.img_label.setPixmap(pixmap)
 
+
+    #--------------------------------
+    # ROI- und Messungsverwaltung
     def set_measurement_window_size(self, width_mm, height_mm):
         self.measurement_window_width_mm = float(width_mm)
         self.measurement_window_height_mm = float(height_mm)

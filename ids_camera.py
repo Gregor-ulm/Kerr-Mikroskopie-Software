@@ -114,7 +114,7 @@ class IDSCamera:
 
         return img
 
-
+    #Einstellungen und Parameter müssen über die sogenannte Nodemap der Kamera gesetzt werden:
     def set_exposure(self, exposure_us: float):
         try:
             node = self.remote_nodemap.FindNode("ExposureTime")
@@ -163,7 +163,6 @@ class IDSCamera:
             offset_x_node = node_map.FindNode("OffsetX")
             offset_y_node = node_map.FindNode("OffsetY")
 
-            # 🔹 GANZ WICHTIG:
             # Erst ROI vollständig resetten
 
             offset_x_node.SetValue(0)
@@ -172,7 +171,7 @@ class IDSCamera:
             width_node.SetValue(width_node.Maximum())
             height_node.SetValue(height_node.Maximum())
 
-            # 🔹 Jetzt neue Größe setzen
+            # Neue Größe setzen
             width = max(width_node.Minimum(),
                         min(width, width_node.Maximum()))
             height = max(height_node.Minimum(),
@@ -181,7 +180,7 @@ class IDSCamera:
             width_node.SetValue(width)
             height_node.SetValue(height)
 
-            # 🔹 Jetzt Offsets setzen
+            # Offsets setzen
             x = max(offset_x_node.Minimum(),
                     min(x, offset_x_node.Maximum()))
             y = max(offset_y_node.Minimum(),
@@ -211,7 +210,7 @@ class IDSCamera:
         try:
             node_map = self.remote_nodemap
 
-            # 1. Stop
+            # Stop
             node_map.FindNode("AcquisitionStop").Execute()
             node_map.FindNode("AcquisitionStop").WaitUntilDone()
 
@@ -224,19 +223,19 @@ class IDSCamera:
             offset_x_node = node_map.FindNode("OffsetX")
             offset_y_node = node_map.FindNode("OffsetY")
 
-            # 2. Offsets zuerst auf 0
+            # Offsets zuerst auf 0
             offset_x_node.SetValue(0)
             offset_y_node.SetValue(0)
 
-            # 3. Dann maximale Größe
+            # Dann maximale Größe
             width_node.SetValue(width_node.Maximum())
             height_node.SetValue(height_node.Maximum())
 
-            # 4. TL wieder locken
+            # TL wieder locken
             if tl:
                 tl.SetValue(1)
 
-            # 5. Restart
+            # Restart
             node_map.FindNode("AcquisitionStart").Execute()
             node_map.FindNode("AcquisitionStart").WaitUntilDone()
 
@@ -258,7 +257,7 @@ class IDSCamera:
     def has_pending_frames(self):
         """
         Prüft, ob noch alte Buffers in der Queue fertig sind.
-        Damit können wir alte Frames verwerfen, um Ruckeln zu vermeiden.
+        Damit werden alte Frames verworfen, um Ruckeln zu vermeiden.
         """
         try:
             return self.data_stream.NumFinishedBuffers() > 0

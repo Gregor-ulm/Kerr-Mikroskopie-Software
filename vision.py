@@ -7,7 +7,14 @@ from camera_adapters import IDSAdapter, WebcamAdapter
 import time
 import os
 
+"""
+Herzstück der Software:
+Dieser Worker-Thread kümmert sich um die kontinuierliche Bildaufnahme, Vorverarbeitung, Hintergrundsubtraktion, Helligkeitsstabilisierung 
+und die Verwaltung von Einzel- und Serienaufnahmen.
+"""
+
 class VisionWorker(QtCore.QThread):
+    # Signale für die Kommunikation mit der GUI und main.py
     frame_ready = QtCore.Signal(np.ndarray)
     progress_changed = QtCore.Signal(int)   # 0–100
     task_started = QtCore.Signal(str)       # z.B. "Hintergrundaufnahme..."
@@ -87,7 +94,7 @@ class VisionWorker(QtCore.QThread):
                 
             if self.brightness_stabilization:
                 gray = self.stabilize_brightness(gray)
-            #LOG für Analyse
+            #LOG für Analyse der Helligkeit, wird der Bildname auf "stat" gesetzt, werden die Mittelwerte der aufgenommenen Bilder in eine Textdatei geschrieben
             if self.series_name == "stat":
                 mean_val = float(np.mean(gray))
                 timestamp = time.time()
@@ -117,16 +124,13 @@ class VisionWorker(QtCore.QThread):
                     # Feedback
                     if quality < 0.2:
                         self.status_message.emit(f"⚠️ Schlechtes Matching ({quality:.2f})")
-
-                    # Optional Logging
-                    #print(f"Shift: dx={dx:.2f}, dy={dy:.2f}, Q={quality:.2f}")
             
             img = None
             if self.background_requested:   
                 img = gray.copy()
             gray = cv.convertScaleAbs(gray, alpha=self.digital_gain*self.diff_gain if self.diff_enabled else self.digital_gain)
-            if self.neutralisation:
-                #back = cv.GaussianBlur(frame_corrected, (0,0), sigmaX=20, sigmaY=20) Zu langsam
+            if self.neutralisation: #Helligkeitsverläufe neutralisieren
+                #back = cv.GaussianBlur(frame_corrected, (0,0), sigmaX=20, sigmaY=20) Zu langsam, stattdessen mehrfaches Box-Blur mit großem Kernel
                 back = cv.blur(gray, (51,51))
                 back = cv.blur(back, (51,51))
                 back = cv.blur(back, (51,51))
@@ -331,11 +335,8 @@ class VisionWorker(QtCore.QThread):
     def set_digital_gain(self, value: float):
         self.digital_gain = value
         
-        
+    #Helligkeitsstabilisierung mit EMA-Normierung
     def stabilize_brightness(self, frame: np.ndarray):
-        """
-        Stabilisiert globale Helligkeit durch EMA-Normierung.
-        """
         mean_current = float(np.mean(frame))
 
         # Initialisierung
@@ -377,6 +378,8 @@ class VisionWorker(QtCore.QThread):
         self.camera.close()
         #self.cap.release()
 
+
+    # Funktionen für Shift-Estimation und Alignment des Hintergrunds
     def extract_roi(self, img):
         h, w = img.shape
         cx, cy = w // 2, h // 2

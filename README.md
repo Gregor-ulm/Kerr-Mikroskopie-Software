@@ -1,2 +1,3 @@
 # Kerr-Mikroskopie-Software
-A software that let's you view images from a microscope camera (IDS) and can calculate live difference images. Comes with functions to same single images and image series. 
+Eine Software zur Kerr-Mikroskopie, die Echtzeit-Differenzbilder anzeigen kann. Kann Einzelbilder und Serienaufnahmen abspeichern. Verwendet eine IDS-Kamera mit ids_peak und ein PowerCassy zur Steuerung des Magnetfelds.
+

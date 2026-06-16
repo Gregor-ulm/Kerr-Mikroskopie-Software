@@ -2,6 +2,15 @@
 import cv2
 import numpy as np
 
+"""
+Adapter-Klassen für IDS-Kamera und Webcam. Sie bieten eine einheitliche Schnittstelle für die Worker/GUI, 
+damit diese nicht direkt mit den spezifischen Kamerabibliotheken arbeiten müssen. So können die Worker/GUI unabhängig von der 
+Kameratechnologie implementiert werden, und die Adapter kümmern sich um die Details der jeweiligen Kamera.
+Wird eine andere Kamera verwendet, muss hier ein Adapter erstellt werden, der eine entsprechende Schnittstelle bereitstellt. 
+Die Worker/GUI können dann unverändert bleiben, solange sie die Methoden der Adapter verwenden.
+Die Kommunikation mit der Kamera erfolgt über eine eigene Klasse, hier ids_camera.py
+Die Kommunikation mit der Webcam erfolgt direkt über OpenCV in diesem Adapter. 
+"""
 # --- IDS Adapter ---
 class IDSAdapter:
     def __init__(self, ids_camera):
